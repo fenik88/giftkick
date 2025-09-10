@@ -1,6 +1,6 @@
 // server.js
-import express from "express";
-import bodyParser from "body-parser";
+const express = require("express");
+const bodyParser = require("body-parser");
 
 const app = express();
 app.use(bodyParser.json());
@@ -26,7 +26,6 @@ app.post("/api/rocket", (req, res) => {
   if (!user) return res.status(400).json({ ok: false, error: "User not found" });
   if (bet > user.balance) return res.status(400).json({ ok: false, error: "Недостаточно средств" });
 
-  // Генерируем случайный крэш от 1.0 до 12.0
   const crashAt = parseFloat((Math.random() * 11 + 1).toFixed(2));
   user.balance -= bet;
 
@@ -42,7 +41,6 @@ app.post("/api/case", (req, res) => {
 
   user.balance -= cost;
 
-  // Рандомный результат
   const r = Math.random();
   let prize = "Обычный подарок";
   let payout = 0;
@@ -73,5 +71,5 @@ app.post("/api/upgrade", (req, res) => {
   res.json({ ok: true, won, gain: won ? stake*mult : 0, newBalance: user.balance });
 });
 
-// --- сервер запуска
+// --- запуск сервера
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
