@@ -3,24 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GiftKick — Mini App</title>
+    <title>GiftKick — Mini App (MVP)</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background:#071127; font-family:sans-serif; color:#fff; margin:0; padding:0; }
-        .app { max-width:460px; margin:20px auto; padding:10px; }
-        .tabs { display:flex; gap:8px; margin-bottom:10px; }
-        .tab { flex:1; padding:10px; text-align:center; cursor:pointer; background:rgba(255,255,255,0.1); border-radius:8px; }
-        .tab.active { background:#2dd4bf; color:#000; }
-        .card { background:#0b1220; padding:10px; margin-bottom:10px; border-radius:8px; }
-        .btn { padding:10px; margin:5px; cursor:pointer; background:#2dd4bf; border:none; border-radius:6px; }
-        .btn.ghost { background:transparent; border:1px solid #2dd4bf; color:#2dd4bf; }
-        .mult { font-size:32px; font-weight:bold; margin-bottom:5px; }
-        .bar { width:100%; height:12px; background:rgba(255,255,255,0.1); border-radius:8px; overflow:hidden; margin-bottom:5px; }
-        .fill { height:100%; width:0%; background:#2dd4bf; transition:width 0.1s linear; }
+        :root {
+            --bg: #0f1724;
+            --card: #0b1220;
+            --accent: #2dd4bf;
+            --muted: #94a3b8;
+            --glass: rgba(255,255,255,0.03);
+        }
+        html, body { margin:0;height:100%;background:linear-gradient(180deg,#071127 0%,#07192b 100%);font-family:Inter,sans-serif;color:#e6eef6; }
+        .app { max-width:460px;margin:18px auto;padding:14px; }
+        .topbar { display:flex;align-items:center;gap:12px; }
+        .logo { width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#1fb6b3,#2dd4bf);display:flex;align-items:center;justify-content:center;font-weight:700;color:#022;box-shadow:0 6px 18px rgba(10,10,20,0.6); }
+        .title { flex:1; }
+        .title h1 { margin:0;font-size:16px; }
+        .title p { margin:0;font-size:12px;color:var(--muted); }
+        .balance { background:var(--glass);padding:8px 10px;border-radius:10px;display:flex;flex-direction:column;align-items:flex-end; }
+        .balance .val { font-weight:700;color:var(--accent); }
+        .tabs { display:flex;gap:8px;margin:14px 0; }
+        .tab { flex:1;padding:10px;border-radius:10px;background:rgba(255,255,255,0.02);text-align:center;cursor:pointer;color:var(--muted); }
+        .tab.active { background:linear-gradient(90deg, rgba(45,212,191,0.12), rgba(45,212,191,0.06));color:var(--accent);box-shadow:0 6px 18px rgba(25,45,60,0.5); }
+        .card { background:var(--card);border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 6px 20px rgba(2,6,23,0.6); }
+        .rocket-stage { display:flex;flex-direction:column;align-items:center;gap:10px; }
+        .bar { width:100%;height:12px;background:rgba(255,255,255,0.03);border-radius:8px;overflow:hidden; }
+        .controls { display:flex;gap:8px;width:100%; }
+        .btn { flex:1;padding:12px;border-radius:10px;background:linear-gradient(180deg,#0b2730,#05202a);border:1px solid rgba(255,255,255,0.04);cursor:pointer;color:#dff7f3; }
+        .btn.ghost { background:transparent;border:1px dashed rgba(255,255,255,0.04);color:var(--muted); }
+        .cases-grid { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px; }
+        .case { padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));text-align:center; }
+        .case .price { font-weight:700;color:var(--accent); }
+        .case .open { margin-top:8px;padding:8px;border-radius:8px;background:#123241;cursor:pointer; }
+        .upgrade-list { display:flex;flex-direction:column;gap:8px;margin-top:10px; }
+        .upgrade-item { display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02); }
+        .small { font-size:12px;color:var(--muted); }
+        footer { margin-top:16px;text-align:center;font-size:12px;color:var(--muted); }
+        canvas { width:100%; height:150px; background: rgba(0,0,0,0.1); border-radius:10px; margin-top:10px; }
     </style>
 </head>
 <body>
 <div class="app">
-    <div>Баланс: <span id="balance">1000</span></div>
+    <div class="topbar">
+        <div class="logo">GK</div>
+        <div class="title"><h1>GiftKick</h1><p id="userName">Привет, игрок</p></div>
+        <div class="balance card"><div class="small">Баланс</div><div class="val" id="balanceVal">1000</div></div>
+    </div>
 
     <div class="tabs">
         <div class="tab active" data-tab="rocket">Ракетка</div>
@@ -28,139 +56,138 @@
         <div class="tab" data-tab="upgrade">Апгрейд</div>
     </div>
 
-    <div id="rocketView" class="card">
-        <div class="mult" id="multiplier">x1.00</div>
-        <div class="bar"><div class="fill" id="rocketFill"></div></div>
-        <input type="number" id="betInput" value="10" min="1"/>
-        <button class="btn" id="betBtn">Ставка</button>
-        <button class="btn ghost" id="cashOutBtn">Забрать</button>
-        <div id="rocketStatus">Раунд не начался</div>
-    </div>
+    <div id="content">
+        <div class="card" id="rocketView">
+            <div class="rocket-stage">
+                <canvas id="rocketChart"></canvas>
+                <div class="small" id="rocketStatus">Раунд скоро начнётся</div>
+                <div class="controls">
+                    <input id="betInput" type="number" min="1" value="10" style="flex:0 0 34%;padding:8px;border-radius:8px;background:#08151b;border:1px solid rgba(255,255,255,0.03);color:#dff7f3"/>
+                    <button class="btn" id="betBtn">Ставка</button>
+                    <button class="btn ghost" id="cashOutBtn">Забрать</button>
+                </div>
+            </div>
+        </div>
 
-    <div id="casesView" class="card" style="display:none">
-        <div class="case" data-cost="10">Starter <button class="btn openCase">Открыть за 10</button></div>
-        <div class="case" data-cost="50">Pro <button class="btn openCase">Открыть за 50</button></div>
-        <div class="case" data-cost="200">VIP <button class="btn openCase">Открыть за 200</button></div>
-    </div>
+        <div class="card" id="casesView" style="display:none">
+            <div class="small">Открой кейс и получи подарок</div>
+            <div class="cases-grid">
+                <div class="case"><div style="font-weight:700">Starter</div><div class="price">10</div><div class="open" data-cost="10">Открыть</div></div>
+                <div class="case"><div style="font-weight:700">Pro</div><div class="price">50</div><div class="open" data-cost="50">Открыть</div></div>
+                <div class="case"><div style="font-weight:700">VIP</div><div class="price">200</div><div class="open" data-cost="200">Открыть</div></div>
+                <div class="case"><div style="font-weight:700">Legend</div><div class="price">1000</div><div class="open" data-cost="1000">Открыть</div></div>
+            </div>
+        </div>
 
-    <div id="upgradeView" class="card" style="display:none">
-        <div class="upgrade-item">
-            x2 — 50% шанс <button class="btn upgradeBtn" data-mult="2" data-stake="50">Играть</button>
-        </div>
-        <div class="upgrade-item">
-            x5 — 20% шанс <button class="btn upgradeBtn" data-mult="5" data-stake="50">Играть</button>
-        </div>
-        <div class="upgrade-item">
-            x10 — 10% шанс <button class="btn upgradeBtn" data-mult="10" data-stake="50">Играть</button>
+        <div class="card" id="upgradeView" style="display:none">
+            <div class="small">Апгрейдни подарок: шанс выиграть умножение</div>
+            <div class="upgrade-list">
+                <div class="upgrade-item">
+                    <div><div style="font-weight:700">x2 — 50% шанс</div><div class="small">примерный доход: 2x</div></div>
+                    <button class="btn ghost" data-mult="2">Играть</button>
+                </div>
+                <div class="upgrade-item">
+                    <div><div style="font-weight:700">x5 — 20% шанс</div><div class="small">примерный доход: 5x</div></div>
+                    <button class="btn ghost" data-mult="5">Играть</button>
+                </div>
+                <div class="upgrade-item">
+                    <div><div style="font-weight:700">x10 — 10% шанс</div><div class="small">примерный доход: 10x</div></div>
+                    <button class="btn ghost" data-mult="10">Играть</button>
+                </div>
+            </div>
         </div>
     </div>
+    <footer>GiftKick • MVP</footer>
 </div>
 
 <script>
     const userId = 'user123';
     let balance = 1000;
-    let rocketInterval;
-    let currentMult = 1;
-    let betAmount = 0;
-    let crashAt = 0;
-    let rocketRunning = false;
+    let rocketInterval, rocketData = [], rocketCrashAt = 0, rocketBet = 0, rocketMultiplier = 1, rocketCashedOut = false;
 
-    // Tabs
-    document.querySelectorAll('.tab').forEach(tab=>{
-        tab.addEventListener('click', ()=>{
-            document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            document.getElementById('rocketView').style.display = tab.dataset.tab==='rocket'?'block':'none';
-            document.getElementById('casesView').style.display = tab.dataset.tab==='cases'?'block':'none';
-            document.getElementById('upgradeView').style.display = tab.dataset.tab==='upgrade'?'block':'none';
+            document.querySelectorAll('#content > .card').forEach(c => c.style.display = 'none');
+            document.getElementById(tab.dataset.tab + 'View').style.display = 'block';
         });
     });
 
-    // Rocket
-    const multiplierEl = document.getElementById('multiplier');
-    const rocketFill = document.getElementById('rocketFill');
-    const statusEl = document.getElementById('rocketStatus');
+    function updateBalance(val) { balance = val; document.getElementById('balanceVal').innerText = balance; }
 
-    document.getElementById('betBtn').addEventListener('click', async ()=>{
-        if(rocketRunning) return;
-        betAmount = Number(document.getElementById('betInput').value);
-        if(betAmount > balance) { alert('Недостаточно средств'); return; }
-        const res = await fetch('/api/rocket',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,bet:betAmount})});
+    const canvas = document.getElementById('rocketChart');
+    const ctx = canvas.getContext('2d');
+    function drawChart() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height);
+        rocketData.forEach((v,i)=>{
+            const x = i * (canvas.width/100);
+            const y = canvas.height - (v/rocketCrashAt)*(canvas.height-20);
+            ctx.lineTo(x,y);
+        });
+        ctx.strokeStyle = '#2dd4bf';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+
+    document.getElementById('betBtn').addEventListener('click', async () => {
+        rocketBet = Number(document.getElementById('betInput').value);
+        if (rocketBet <= 0 || rocketBet > balance) return alert('Неверная ставка');
+        const res = await fetch('/api/rocket',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,bet:rocketBet})});
         const data = await res.json();
-        crashAt = data.crashAt;
-        balance = data.newBalance;
-        updateBalance();
-        startRocket();
+        if(!data.ok) return alert(data.error);
+        rocketCrashAt = data.crashAt;
+        updateBalance(data.newBalance);
+        rocketData = [1];
+        rocketMultiplier = 1;
+        rocketCashedOut = false;
+        document.getElementById('rocketStatus').innerText = 'Ракета взлетает!';
+
+        clearInterval(rocketInterval);
+        rocketInterval = setInterval(()=>{
+            rocketMultiplier *= 1.015; // ускорение +50%
+            rocketData.push(rocketMultiplier);
+            drawChart();
+            if(rocketMultiplier >= rocketCrashAt){
+                clearInterval(rocketInterval);
+                document.getElementById('rocketStatus').innerText = 'Ракета упала! Вы проиграли.';
+            }
+        },100);
     });
 
     document.getElementById('cashOutBtn').addEventListener('click', ()=>{
-        if(!rocketRunning) return;
-        rocketRunning = false;
-        clearInterval(rocketInterval);
-        const gain = Math.round(betAmount * currentMult * 100)/100;
+        if(rocketCashedOut || rocketMultiplier >= rocketCrashAt) return;
+        const gain = Math.floor(rocketBet * rocketMultiplier);
         balance += gain;
-        updateBalance();
-        statusEl.textContent = `Вы забрали: ${gain}`;
-        currentMult = 1;
-        rocketFill.style.width = '0%';
-        multiplierEl.textContent = 'x1.00';
+        updateBalance(balance);
+        rocketCashedOut = true;
+        document.getElementById('rocketStatus').innerText = `Вы забрали: ${gain}`;
     });
 
-    function startRocket(){
-        rocketRunning = true;
-        currentMult = 1;
-        multiplierEl.textContent = 'x1.00';
-        rocketFill.style.width = '0%';
-        statusEl.textContent = 'Полёт!';
-        let time = 0;
-        rocketInterval = setInterval(()=>{
-            time+=0.1;
-            currentMult = Math.pow(1.05,time); // плавный рост
-            multiplierEl.textContent = 'x'+currentMult.toFixed(2);
-            rocketFill.style.width = Math.min(100, currentMult*8)+'%';
-            if(currentMult >= crashAt){
-                rocketRunning = false;
-                clearInterval(rocketInterval);
-                statusEl.textContent = 'Ракета взорвалась! 💥';
-                currentMult = 1;
-                rocketFill.style.width='0%';
-                multiplierEl.textContent='x1.00';
-            }
-        },100);
-    }
-
-    // Cases
-    document.querySelectorAll('.openCase').forEach(btn=>{
+    document.querySelectorAll('.case .open').forEach(btn=>{
         btn.addEventListener('click', async ()=>{
-            const cost = Number(btn.parentElement.dataset.cost);
+            const cost = Number(btn.dataset.cost);
             const res = await fetch('/api/case',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,cost})});
             const data = await res.json();
-            if(data.ok){
-                balance = data.newBalance;
-                updateBalance();
-                alert(`Вы получили: ${data.prize} (Выигрыш: ${data.payout})`);
-            }
+            if(!data.ok) return alert(data.error);
+            updateBalance(data.newBalance);
+            alert(`Вы получили: ${data.prize} (выигрыш: ${data.payout})`);
         });
     });
 
-    // Upgrades
-    document.querySelectorAll('.upgradeBtn').forEach(btn=>{
+    document.querySelectorAll('.upgrade-item button').forEach(btn=>{
         btn.addEventListener('click', async ()=>{
             const mult = Number(btn.dataset.mult);
-            const stake = Number(btn.dataset.stake);
-            const res = await fetch('/api/upgrade',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,mult,stake})});
+            const stake = 10;
+            const res = await fetch('/api/upgrade',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,stake,mult})});
             const data = await res.json();
-            if(data.ok){
-                balance = data.newBalance;
-                updateBalance();
-                alert(data.won ? `Вы выиграли: ${data.gain}` : 'Вы проиграли!');
-            }
+            if(!data.ok) return alert(data.error);
+            updateBalance(data.newBalance);
+            alert(data.won ? `Вы выиграли ${data.gain}` : 'Неудача, попробуйте снова');
         });
     });
-
-    function updateBalance(){
-        document.getElementById('balance').textContent = balance.toFixed(2);
-    }
 </script>
 </body>
 </html>
