@@ -11,20 +11,21 @@ const PORT = process.env.PORT || 3000;
 // --- Хранилище пользователей (MVP, в памяти)
 let users = {};
 
+// --- Фиксированный временный userId для MVP
+const TEMP_USER_ID = "user123";
+if (!users[TEMP_USER_ID]) {
+  users[TEMP_USER_ID] = { name: "Игрок", balance: 1000 };
+}
+
 // --- Создать или получить пользователя
 app.post("/api/user", (req, res) => {
-  const { userId, name } = req.body;
-  if (!users[userId]) {
-    users[userId] = { name: name || "Игрок", balance: 1000 };
-  }
-  res.json({ ok: true, user: users[userId] });
+  res.json({ ok: true, user: users[TEMP_USER_ID], userId: TEMP_USER_ID });
 });
 
 // --- Ракетка (Crash)
 app.post("/api/rocket", (req, res) => {
-  const { userId, bet } = req.body;
-  const user = users[userId];
-  if (!user) return res.status(400).json({ ok: false, error: "User not found" });
+  const { bet } = req.body;
+  const user = users[TEMP_USER_ID];
   if (bet > user.balance) return res.status(400).json({ ok: false, error: "Недостаточно средств" });
 
   const crashAt = parseFloat((Math.random() * 11 + 1).toFixed(2));
@@ -35,9 +36,8 @@ app.post("/api/rocket", (req, res) => {
 
 // --- Кейсы
 app.post("/api/case", (req, res) => {
-  const { userId, cost } = req.body;
-  const user = users[userId];
-  if (!user) return res.status(400).json({ ok: false, error: "User not found" });
+  const { cost } = req.body;
+  const user = users[TEMP_USER_ID];
   if (cost > user.balance) return res.status(400).json({ ok: false, error: "Недостаточно средств" });
 
   user.balance -= cost;
@@ -56,9 +56,8 @@ app.post("/api/case", (req, res) => {
 
 // --- Апгрейды
 app.post("/api/upgrade", (req, res) => {
-  const { userId, stake, mult } = req.body;
-  const user = users[userId];
-  if (!user) return res.status(400).json({ ok: false, error: "User not found" });
+  const { stake, mult } = req.body;
+  const user = users[TEMP_USER_ID];
   if (stake > user.balance) return res.status(400).json({ ok: false, error: "Недостаточно средств" });
 
   const probs = { 2: 0.5, 5: 0.2, 10: 0.1 };
@@ -76,4 +75,3 @@ app.post("/api/upgrade", (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
-
